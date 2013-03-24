@@ -3,6 +3,7 @@ from PIL import Image, ImageTk
 import sys
 import serialcommu
 from math import cos, sin, radians
+import threading
 
 class App:
     def __init__(self, master,mega1):
@@ -28,22 +29,27 @@ class App:
 
         self.online = 0
         self.draw_online_indicator()
+        self.update_online_variable()
         self.update_indicator()
-
 
     def draw_online_indicator(self):
         self.ind_rect = self.w.create_rectangle(50, 25, 150, 75, fill="red")
 
-    def update_indicator(self):
-        self.online = self.mega1.ping()
+    def update_online_variable(self):
+        #do some stuff
+        def pinging(): self.online = self.mega1.ping()
+        pinging_thread = threading.Thread( target = pinging )
+        pinging_thread.start()
+        self.frame.after(100, self.update_online_variable)
 
+    def update_indicator(self):
         if self.online: fill_colour = "green"
         else: fill_colour = "red"
 
         self.w.itemconfig(self.ind_rect, fill = fill_colour)
 
         #every 2 sec redraw indicator
-        self.frame.after(5000, self.update_indicator)
+        self.frame.after(100, self.update_indicator)
 
 class dial(object):
     def __init__(self, frame, name):
