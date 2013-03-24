@@ -16,7 +16,8 @@ class App:
         self.w = Canvas(frame, width=200, height=100)
         self.w.pack()
 
-        self.dial=Canvas(frame, width=100, height=100)
+        self.dail_size = 250
+        self.dial=Canvas(frame, width=self.dail_size, height=self.dail_size)
         self.dial.pack()
 
         self.quit_button = Button(frame, text="QUIT", fg="red", command=frame.quit)
@@ -47,19 +48,38 @@ class App:
         self.master.after(1000, self.draw_online_indicator)
 
     def draw_dial(self):
-        print"drawing oval"
-        self.dial.create_oval(2,2,98,98)
-        self.line = self.dial.create_line(50,50,50,50, fill="red", width = 2)
-        self.dial.create_line(2,50,98,50)
-        self.dial.create_line(50,2,50,98)
+        size = self.dail_size
+        offs = 15
+        self.dial.create_oval(offs,offs,size-offs,size-offs)
+
+        self.line = self.dial.create_line(size/2,size/2,size/2,size-offs, fill="red", width = 2)
+
+        self.dial.create_line(offs,size/2,size-offs,size/2)
+        self.dial.create_line(size/2,offs,size/2,size-offs)
+
+        self.dial_text = self.dial.create_text( size/2, size-offs, fill="red", text = str(self.angle), anchor="sw" )
 
     def update_dial(self):
-        self.angle = self.angle + 20
-        length = 50
+        size = self.dail_size
+        offs = 15
+
+        self.angle = self.angle + 5
+        length = (size-2*offs)/2
+
         x = length* cos(radians(self.angle))
         y = length* sin(radians(self.angle))
-        self.dial.coords(self.line, 50, 50, x+50, y+50)
-        self.master.after(10, self.update_dial)
+        self.dial.coords(self.line, size/2, size/2, x+size/2, y+size/2)
+
+        if (self.angle+90)%360 in range(90,270): anchor = "n"
+        else: anchor = "s"
+
+        if (self.angle+90)%360 in range(0,180): anchor += "w"
+        else: anchor += "e"
+
+        self.dial.itemconfig(self.dial_text, text = str((self.angle+90)%360), anchor = anchor)
+        self.dial.coords(self.dial_text, x+size/2, y+size/2)
+
+        self.master.after(100, self.update_dial)
 
 
 
@@ -68,4 +88,5 @@ if __name__ == '__main__':
     root = Tk()
     app = App(root,mega1)
     root.mainloop()
-    mega1.stop()
+    try: mega1.stop()
+    except: pass
