@@ -9,7 +9,7 @@ class App:
         self.master=master
         self.mega1=mega1
 
-        frame = Frame(master)
+        self.frame = frame = Frame(master)
         frame.pack()
 
         dial1 = dial(frame,"Azimuth")
@@ -23,7 +23,7 @@ class App:
         self.quit_button = Button(frame, text="QUIT", fg="red", command=frame.quit)
         self.quit_button.pack(side=LEFT)
 
-        self.connect_button = Button(frame, text="Connect", fg="black", command=self.mega1.connect())
+        self.connect_button = Button(frame, text="Connect", fg="black", command=self.mega1.connect)
         self.connect_button.pack(side=LEFT)
 
         self.online = 0
@@ -42,8 +42,8 @@ class App:
 
         self.w.itemconfig(self.ind_rect, fill = fill_colour)
 
-        #every 1 sec redraw indicator
-        self.master.after(1000, self.draw_online_indicator)
+        #every 2 sec redraw indicator
+        self.frame.after(5000, self.update_indicator)
 
 class dial(object):
     def __init__(self, frame, name):
