@@ -1,10 +1,11 @@
-from Tkinter import *
-from PIL import Image, ImageTk
-import sys
 import serialcommu
-from math import cos, sin, radians
 import threading
 import random
+import sys
+from Tkinter import *
+from math import cos, sin, radians
+from PIL import Image, ImageTk
+
 
 class App:
     def __init__(self, master,mega1):
@@ -19,8 +20,9 @@ class App:
         dial2 = dial(frame,"Elevation")
         dial2.update_dial()
 
-        self.w = Canvas(frame, width=200, height=100)
-        self.w.pack()
+        self.online = 0
+        self.draw_online_indicator()
+        self.update_indicator()
 
         self.quit_button = Button(frame, text="QUIT", fg="red", command=frame.quit)
         self.quit_button.pack(side=LEFT)
@@ -28,30 +30,26 @@ class App:
         self.connect_button = Button(frame, text="Connect", fg="black", command=self.mega1.connect)
         self.connect_button.pack(side=LEFT)
 
-        self.online = 0
-        self.draw_online_indicator()
-        self.update_online_variable()
-        self.update_indicator()
-
     def draw_online_indicator(self):
-        self.ind_rect = self.w.create_rectangle(50, 25, 150, 75, fill="red")
+        self.w = Canvas(self.frame, width=50, height=50)
+        self.w.pack()
+        self.ind_rect = self.w.create_rectangle(2, 2, 48, 48, fill="red")
 
-    def update_online_variable(self):
+    def update_indicator(self):
+
         def pinging(): self.online = self.mega1.ping()
         pinging_thread = threading.Thread( target = pinging )
         pinging_thread.start()
-        self.frame.after(100, self.update_online_variable)
 
-    def update_indicator(self):
         if self.online: fill_colour = "green"
         else: fill_colour = "red"
-
         self.w.itemconfig(self.ind_rect, fill = fill_colour)
 
-        #every 2 sec redraw indicator
+        #every 0.1 sec redraw indicator
         self.frame.after(100, self.update_indicator)
 
 class dial(object):
+
     def __init__(self, frame, name):
         self.master = frame
         self.dail_size = size = 250
