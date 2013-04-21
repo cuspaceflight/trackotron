@@ -53,9 +53,10 @@ class dial(object):
     def __init__(self, frame, name):
         self.master = frame
         self.dail_size = size = 250
-        self.offs = offs = 50
+        self.offs = offs = 30
         self.dial=Canvas(frame, width=self.dail_size, height=self.dail_size)
         self.dial.pack(side = LEFT)
+        self.dial.create_rectangle(2, 2, self.dail_size-2, self.dail_size-2, fill="white")
 
         # draw the circle
         self.dial.create_oval(offs,offs,size-offs,size-offs)
@@ -77,8 +78,8 @@ class dial(object):
 
         # draw texts at the bottom
         self.dial.create_rectangle( size/2-45, size-39, size/2+45, size-1,fill = "white" )
-        self.text1 = self.dial.create_text( size/2-43, size-1,  text="Sensor", fill = "red", anchor="sw")
-        self.text2 = self.dial.create_text( size/2-43, size-12, text="Dead",  fill = "blue", anchor="sw")
+        self.text1 = self.dial.create_text( size/2-43, size-1,  text="Sensor", fill = "red",   anchor="sw")
+        self.text2 = self.dial.create_text( size/2-43, size-12, text="Dead",   fill = "blue",  anchor="sw")
         self.text3 = self.dial.create_text( size/2-43, size-23, text="Target", fill = "green", anchor="sw")
 
         # label the dial
