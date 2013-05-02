@@ -1,8 +1,11 @@
-from Tkinter import *
-from PIL import Image, ImageTk
-import sys
 import serialcommu
+import threading
+import random
+import sys
+from Tkinter import *
 from math import cos, sin, radians
+from PIL import Image, ImageTk
+
 
 class App:
     def __init__(self, master,mega1):
@@ -17,8 +20,9 @@ class App:
         dial2 = dial(frame,"Elevation")
         dial2.update_dial()
 
-        self.w = Canvas(frame, width=200, height=100)
-        self.w.pack()
+        self.online = 0
+        self.draw_online_indicator()
+        self.update_indicator()
 
         self.quit_button = Button(frame, text="QUIT", fg="red", command=frame.quit)
         self.quit_button.pack(side=LEFT)
@@ -26,32 +30,33 @@ class App:
         self.connect_button = Button(frame, text="Connect", fg="black", command=self.mega1.connect)
         self.connect_button.pack(side=LEFT)
 
-        self.online = 0
-        self.draw_online_indicator()
-        self.update_indicator()
-
-
     def draw_online_indicator(self):
-        self.ind_rect = self.w.create_rectangle(50, 25, 150, 75, fill="red")
+        self.w = Canvas(self.frame, width=50, height=50)
+        self.w.pack()
+        self.ind_rect = self.w.create_rectangle(2, 2, 48, 48, fill="red")
 
     def update_indicator(self):
-        self.online = self.mega1.ping()
+
+        def pinging(): self.online = self.mega1.ping()
+        pinging_thread = threading.Thread( target = pinging )
+        pinging_thread.start()
 
         if self.online: fill_colour = "green"
         else: fill_colour = "red"
-
         self.w.itemconfig(self.ind_rect, fill = fill_colour)
 
-        #every 2 sec redraw indicator
-        self.frame.after(5000, self.update_indicator)
+        #every 0.1 sec redraw indicator
+        self.frame.after(100, self.update_indicator)
 
 class dial(object):
+
     def __init__(self, frame, name):
         self.master = frame
         self.dail_size = size = 250
-        self.offs = offs = 50
+        self.offs = offs = 30
         self.dial=Canvas(frame, width=self.dail_size, height=self.dail_size)
         self.dial.pack(side = LEFT)
+        self.dial.create_rectangle(2, 2, self.dail_size-2, self.dail_size-2, fill="white")
 
         # draw the circle
         self.dial.create_oval(offs,offs,size-offs,size-offs)
@@ -72,12 +77,10 @@ class dial(object):
         self.angle1 = self.angle2 = self.angle3 = 0
 
         # draw texts at the bottom
-        self.dial.create_rectangle( size/2-23, size-39, size/2+35, size-1,fill = "white" )
-        self.dial.create_text( size/2-20, size-1, text="Sensor", fill = "red", anchor="sw")
-        self.dial.create_text( size/2-20, size-12, text="Dead rec", fill = "blue", anchor="sw")
-        self.dial.create_text( size/2-20, size-23, text="Target", fill = "green", anchor="sw")
-
-
+        self.dial.create_rectangle( size/2-45, size-39, size/2+45, size-1,fill = "white" )
+        self.text1 = self.dial.create_text( size/2-43, size-1,  text="Sensor", fill = "red",   anchor="sw")
+        self.text2 = self.dial.create_text( size/2-43, size-12, text="Dead",   fill = "blue",  anchor="sw")
+        self.text3 = self.dial.create_text( size/2-43, size-23, text="Target", fill = "green", anchor="sw")
 
         # label the dial
         self.dial.create_text( size/2, 20, text=name, fill = "Black", anchor="s")
@@ -88,28 +91,30 @@ class dial(object):
         length = (size-2*offs)/2
 
         # update the readings of the pointers
-        self.angle1 = self.angle1 + 5
-        self.angle2 = self.angle2 + 3
-        self.angle3 = self.angle3 + 1
+        self.angle1 = (self.angle1 + (random.random()-0.3)*5)%360
+        self.angle2 = (self.angle2 + (random.random()-0.3)*5)%360
+        self.angle3 = (self.angle3 + (random.random()-0.3)*5)%360
 
-        def update_pointer(angle, ptr, ptr_txt):
+        def update_pointer(angle, ptr, ptr_txt, legend):
             x = length* cos(radians(angle-90))
             y = length* sin(radians(angle-90))
             self.dial.coords(ptr, size/2, size/2, x+size/2, y+size/2)
 
-            if (angle)%360 in range(90,270): anchor = "n"
+            if round(angle) in range(90,270): anchor = "n"
             else: anchor = "s"
 
-            if (angle)%360 in range(0,180): anchor += "w"
+            if round(angle) in range(0,180): anchor += "w"
             else: anchor += "e"
 
-            self.dial.itemconfig(ptr_txt, text = str((angle)%360), anchor = anchor)
+            self.dial.itemconfig(ptr_txt, text = str(round((angle)%360)), anchor = anchor)
             self.dial.coords(ptr_txt, x+size/2, y+size/2)
+            update_text = self.dial.itemcget(legend, "text").split()[0].ljust(10)
+            self.dial.itemconfig( legend, text = update_text + "%0.1f" %angle )
 
         # update the pointers
-        update_pointer(self.angle1,self.ptr1, self.ptr1_txt)
-        update_pointer(self.angle2,self.ptr2, self.ptr2_txt)
-        update_pointer(self.angle3,self.ptr3, self.ptr3_txt)
+        update_pointer(self.angle1,self.ptr1, self.ptr1_txt, self.text1)
+        update_pointer(self.angle2,self.ptr2, self.ptr2_txt, self.text2)
+        update_pointer(self.angle3,self.ptr3, self.ptr3_txt, self.text3)
 
         self.master.after(100, self.update_dial)
 
