@@ -17,11 +17,13 @@ void setup() // run once, when the sketch starts
     // define pin I/O status
     pinMode( ledPin,     OUTPUT ); // sets the digital pin as output
     pinMode( GPSoutput,  INPUT  ); // GPS data line
-    
-    Wire.begin();//Initialize I2C communications to compass
+
+    Wire.begin();//Initialize I2C communications
+    acc_setup(); // Initialize acceleromete
+
     Serial1.begin(600); // begin serial connection to roator at baud 600
     stopantenna(); // initialise contact with spid and stop it
-    Serial.begin(115200); // begin serial connection computer at bps rate
+    Serial.begin(9600); // begin serial connection computer at bps rate
     Serial.println("Initialised.");
 }
 
@@ -30,39 +32,41 @@ void loop() // run over and over again
     String cmd = "";
     char incomming_char; // to store the incomming character from the computer
 
-    flash(1); // turn on LED to show working
+    //flash(1); // flash LED to show working
 
     //Don't do anything until we have a computer input command
     while( Serial.available() == 0 );
     delay(50); // wait for incomming message to be fully buffered.1s
-         
+
     // read the incoming bytes and put in in a string
     while( Serial.available() )
     {
         incomming_char = Serial.read();
         if(incomming_char == ' ') break;
         cmd.concat( incomming_char );
-        
     }
-
-    int param1 = Serial.parseInt();
-    int param2 = Serial.parseInt();
     
+    int param1,param2;
+    //int param1 = Serial.parseInt();
+    //int param2 = Serial.parseInt();
+
     // echo command
     //Serial.println( "Command Received: " + cmd );
     //Serial.print( param1 );
     //Serial.println( param2 );
 
     // switch case based on input command
+
     cmd.toLowerCase();
-    if      ( cmd == "move_azel" ) moveantenna( int(param1), int(param2) ); // Move with Azimuth and Elevation tbc: test to see how the behaviour really is
+    if      ( cmd == "update"    ) Serial.println( gps_readxyz() + "," + acc_readxyz() + "," +compass_readxyz() + ",0,0" ); // to replace getantennapos
+    else if ( cmd == "move_azel" ) moveantenna( int(param1), int(param2) ); // Move with Azimuth and Elevation tbc: test to see how the behaviour really is
     else if ( cmd == "move_stop" ) stopantenna();
     else if ( cmd == "rqst_azel" ) Serial.println( getantennapos() ); // get antenna position
     else if ( cmd == "comp_xyz"  ) Serial.println( compass_readxyz() ); // return compass reading
-    else if ( cmd == "acc_xyz"   ); // Serial.println( acc_readxyz() ); // tbd: wrtie the functions
-    else if ( cmd == "rqst_gps"  ); // Serial.println( gps_readxyz() ); // tbd: wrtie the functions
+    else if ( cmd == "acc_xyz"   ) Serial.println( acc_readxyz() ); // tbd: wrtie the functions
+    else if ( cmd == "rqst_gps"  ) Serial.println( gps_readxyz() ); // tbd: wrtie the functions
     else if ( cmd == "manu_ofst" ) {AzManOfst = param1; ElManOfst = param2;} // allow for manual offset definitions
-    else if ( cmd == "rqst_ofst" ) Serial.print( String(AzManOfst) + " " + String(ElManOfst) ); //Reply with offsets
+    else if ( cmd == "rqst_ofst" ) Serial.println( String(AzManOfst) + " " + String(ElManOfst) ); //Reply with offsets
     else if ( cmd == "ping"      ) Serial.println( "pong" );
     else Serial.println("Error: COMMAND NOT RECOGNISED: " + cmd );
 }
@@ -78,5 +82,3 @@ void flash(int n)
     delay(20);               // wait for a second
   }
 }
-
-

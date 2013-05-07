@@ -4,6 +4,8 @@ import sys
 import time
 import os
 from serial.tools import list_ports
+import threading
+import time
 
 def list_serial_ports():
     # Windows
@@ -22,10 +24,39 @@ def list_serial_ports():
         # Mac / Linux
         return [port[0] for port in list_ports.comports()]
 
-
 class mega(object):
     def __init__(self):
         self.connect()
+        self.az = 0
+        self.el = 0
+        self.gps = [0,0,0]
+        self.magno = [0,0,0]
+        self.acc = [0,0,0]
+        self.online = 0
+        self.updateinterval = 1
+        self.update()
+
+    def update(self):
+        self.ser.write('update')
+
+        line = self.ser.readline().rstrip('\r\n').split(',') # .split() splits the line by the space and puts the 6 segments into a list
+        #print "received line:" + str(line)
+        sys.stdout.flush()
+
+        if len( line )!=11:
+            self.online = 0
+        else:
+            self.online = 1
+            self.gps   = [ int(x) for x in line[0:3] ]
+            self.acc   = [ int(x) for x in line[3:6] ]
+            self.magno = [ int(x) for x in line[6:9] ]
+            self.az    = int(line[9])
+            self.el    = int(line[10])
+
+        self.timer = threading.Timer(self.updateinterval, self.update) # recall update value every few second
+        self.timer.start()
+
+        return 0 # success
 
     def connect(self):
         # destroy reference of previous port used
@@ -34,18 +65,15 @@ class mega(object):
         except Exception:
             pass
         available_ports = list_serial_ports()
-        print "available ports: " + str(available_ports)
+
         if len(available_ports)==1:
             self.port_name = available_ports[0]
-            self.ser = serial.Serial(self.port_name, timeout=3,baudrate=115200)
-            print self.ser.portstr
-            print self.ser.readline().strip()
+            self.ser = serial.Serial(self.port_name, timeout=3,baudrate=9600)
         elif len(available_ports)==0:
             print "no available ports"
         else:
-            print "more than one available"
+            print "more than one available ports: " + str(available_ports)
         sys.stdout.flush()
-        
 
     def online(self):
         return self.ser.isOpen()
@@ -60,7 +88,8 @@ class mega(object):
             return 0
 
     def magno_read(self):
-        # sent the charactor 'c' to the arduino. I have programmed the arduino to lesten to the serial link and if it catches a 'c' it will return the 3 axis on one line.
+        # sent the charactor 'comp_xyz' to the arduino. I have programmed the arduino to lesten
+        # to the serial link and if it catches the command it will return the 3 axis on one line.
         self.ser.write('comp_xyz')
 
         # read the returned line in the format: 'x int y int z int'
@@ -77,17 +106,65 @@ class mega(object):
         return x,y,z # success
 
     def stop(self):
+        self.timer.cancel()
         self.ser.close()
+
+    def move_azel(self, az, el):
+        self.ser.write( "move_azel %i %i" %(az, el) )
+
+    def stop_antenna(self):
+        self.ser.write( "move_stop" )
+
+    def rqst_azel(self):
+        self.ser.write( "reqst_azel" )
+        retval = self.ser.readline()
+        return [int(x) for x in retval.split()]
+
+    def read_acc(self):
+        # sent the charactor 'comp_xyz' to the arduino. I have programmed the arduino to lesten
+        # to the serial link and if it catches the command it will return the 3 axis on one line.
+        self.ser.write('acc_xyz')
+
+        # read the returned line in the format: 'x int y int z int'
+        line = self.ser.readline().split() # .split() splits the line by the space and puts the 6 segments into a list
+
+        # check it is required length
+        if len( line )!=6: return 1 # error
+
+        # assign varyble x y z respectively
+        x,y,z = int(line[1]),int(line[3]),int(line[5])
+
+        return x,y,z # success
+
+    def read_gps(self):
+        # sent the charactor 'comp_xyz' to the arduino. I have programmed the arduino to lesten
+        # to the serial link and if it catches the command it will return the 3 axis on one line.
+        self.ser.write('rqst_gps')
+
+        # read the returned line in the format: 'x int y int z int'
+        line = self.ser.readline().split() # splits the line by the space and puts the 6 segments into a list
+
+        # check it is required length
+        if len( line )!=6: return 1 # error
+
+        # assign varyble x y z respectively
+        x,y,z = int(line[1]),int(line[3]),int(line[5])
+
+        return x,y,z # success
 
 
 if __name__ == '__main__':
     mega1 = mega() # on port 3
+    i = 0
 
     while(1):
-        if mega1.ping(): print "ping successful"
-        else:
-            print "ping failed"
-            break
+        #if mega1.ping(): print "ping successful"
+        #else:
+        #    print "ping failed"
+        #    break
+        print str(i) + ":" + str(mega1.magno)
+        i += 1
         sys.stdout.flush()
+        time.sleep(3)
 
     mega1.stop()# close port

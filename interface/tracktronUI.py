@@ -22,7 +22,6 @@ class App:
 
         self.online = 0
         self.draw_online_indicator()
-        self.update_indicator()
 
         self.quit_button = Button(frame, text="QUIT", fg="red", command=frame.quit)
         self.quit_button.pack(side=LEFT)
@@ -30,23 +29,30 @@ class App:
         self.connect_button = Button(frame, text="Connect", fg="black", command=self.mega1.connect)
         self.connect_button.pack(side=LEFT)
 
+        self.stats = STATUS(frame,mega1)
+
+        self.updating()
+
     def draw_online_indicator(self):
         self.w = Canvas(self.frame, width=50, height=50)
         self.w.pack()
         self.ind_rect = self.w.create_rectangle(2, 2, 48, 48, fill="red")
 
     def update_indicator(self):
-
-        def pinging(): self.online = self.mega1.ping()
-        pinging_thread = threading.Thread( target = pinging )
-        pinging_thread.start()
+        self.online = self.mega1.online
 
         if self.online: fill_colour = "green"
         else: fill_colour = "red"
         self.w.itemconfig(self.ind_rect, fill = fill_colour)
 
+    def updating(self, ):
+        print "update is bing called"
+        sys.stdout.flush()
+        self.update_indicator()
+        self.stats.update_stats()
         #every 0.1 sec redraw indicator
-        self.frame.after(100, self.update_indicator)
+        self.frame.after(100, self.updating)
+
 
 class dial(object):
 
@@ -117,6 +123,43 @@ class dial(object):
         update_pointer(self.angle3,self.ptr3, self.ptr3_txt, self.text3)
 
         self.master.after(100, self.update_dial)
+
+class CTRLS(object):
+    def __init__(self, ):
+        ctrl_frame = Frame(master)
+        ctrl_frame.pack()
+
+        self.quit_button = Button(frame, text="Up", fg="red", command=ctrl_frame.quit)
+        self.quit_button.pack(side=LEFT)
+
+class STATUS(object):
+    def __init__(self, frame, mega):
+        self.mega = mega
+        self.canv = Canvas(frame, width=200, height=200)
+        self.canv.pack(side = RIGHT)
+        canvasheight = int(self.canv.config()['height'][-1])
+        cavaswidth   = int(self.canv.config()['width'] [-1])
+        self.canv.create_rectangle(2, 2, cavaswidth-2, canvasheight-2, fill="white")
+
+        stats_str = "ONLINE: {} \nAZ: {} EL: {} \nGPS: {} {} {}\nMAG: {} {} {}\nACC: {} {} {}\n"
+        x = [self.mega.online]+[self.mega.az]+[self.mega.el]+self.mega.gps+self.mega.magno+self.mega.acc
+        self.status_txt = self.canv.create_text( 4,4 , text=stats_str.format(*x), anchor="nw")
+
+    def update_stats(self):
+        stats_str = "ONLINE: {} \nAZ: {} EL: {} \nGPS: {} {} {}\nMAG: {} {} {}\nACC: {} {} {}\n"
+        x = [self.mega.online]+[self.mega.az]+[self.mega.el]+self.mega.gps+self.mega.magno+self.mega.acc
+
+        #print str(self.mega.online)
+        #print str(self.mega.az)
+        #print str(self.mega.el)
+        #print str(self.mega.gps)
+        #print str(self.mega.magno)
+        #print str(self.mega.acc)
+        #print x
+        #sys.stdout.flush()
+
+        self.canv.itemconfig(self.status_txt, text=stats_str.format(*x) )
+
 
 if __name__ == '__main__':
     mega1=serialcommu.mega()
