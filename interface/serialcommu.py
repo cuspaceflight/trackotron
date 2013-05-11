@@ -1,11 +1,11 @@
 # script to do serial communication using python
-import serial
-import sys
-import time
-import os
 from serial.tools import list_ports
 import threading
+import serial
 import time
+import math
+import sys
+import os
 
 def list_serial_ports():
     # Windows
@@ -31,17 +31,21 @@ class mega(object):
         self.el = 0
         self.gps = [0,0,0]
         self.magno = [0,0,0]
+        self.sensor_az = 0
+        self.sensor_el = 0
         self.acc = [0,0,0]
         self.online = 0
-        self.updateinterval = 1
         self.update()
 
     def update(self):
+
+        t1 = time.time()
         self.ser.write('update')
 
         line = self.ser.readline().rstrip('\r\n').split(',') # .split() splits the line by the space and puts the 6 segments into a list
         #print "received line:" + str(line)
-        sys.stdout.flush()
+        #print time.time()-t1
+        #sys.stdout.flush()
 
         if len( line )!=11:
             self.online = 0
@@ -50,11 +54,10 @@ class mega(object):
             self.gps   = [ int(x) for x in line[0:3] ]
             self.acc   = [ int(x) for x in line[3:6] ]
             self.magno = [ int(x) for x in line[6:9] ]
-            self.az    = int(line[9])
+            self.az    = int(line[9] )
             self.el    = int(line[10])
-
-        self.timer = threading.Timer(self.updateinterval, self.update) # recall update value every few second
-        self.timer.start()
+            self.sensor_az = math.degrees(math.atan2(self.magno[1], self.magno[0]))
+            self.sensor_el = math.degrees(math.atan2(self.acc[1],   self.acc[0]  ))
 
         return 0 # success
 

@@ -1,24 +1,26 @@
-import serialcommu
-import threading
-import random
-import sys
-from Tkinter import *
 from math import cos, sin, radians
 from PIL import Image, ImageTk
+from Tkinter import *
+import serialcommu
+import random
+import time
+import sys
+
+
 
 
 class App:
-    def __init__(self, master,mega1):
-        self.master=master
-        self.mega1=mega1
+    def __init__(self, master, mega1):
+        self.update_interval = 100 #ms
+
+        self.master = master
+        self.mega1 = mega1
 
         self.frame = frame = Frame(master)
         frame.pack()
 
-        dial1 = dial(frame,"Azimuth")
-        dial1.update_dial()
-        dial2 = dial(frame,"Elevation")
-        dial2.update_dial()
+        self.dial1 = dial(frame,"Azimuth")
+        self.dial2 = dial(frame,"Elevation")
 
         self.online = 0
         self.draw_online_indicator()
@@ -30,6 +32,7 @@ class App:
         self.connect_button.pack(side=LEFT)
 
         self.stats = STATUS(frame,mega1)
+        self.t1 = 0
 
         self.updating()
 
@@ -46,12 +49,19 @@ class App:
         self.w.itemconfig(self.ind_rect, fill = fill_colour)
 
     def updating(self, ):
-        print "update is bing called"
-        sys.stdout.flush()
+        #print "update is bing called"
+        self.mega1.update()
         self.update_indicator()
         self.stats.update_stats()
-        #every 0.1 sec redraw indicator
-        self.frame.after(100, self.updating)
+        self.dial1.update_dial(self.mega1.sensor_az, 0, 0)
+        self.dial2.update_dial(self.mega1.sensor_el, 0, 0)
+
+        #print time.time()- self.t1
+        #self.t1 = time.time()
+        #sys.stdout.flush()
+        #every 0.1 sec redraw UI
+
+        self.frame.after(self.update_interval, self.updating)
 
 
 class dial(object):
@@ -80,7 +90,6 @@ class dial(object):
         self.ptr1, self.ptr1_txt = draw_pointer("red")
         self.ptr2, self.ptr2_txt = draw_pointer("blue")
         self.ptr3, self.ptr3_txt = draw_pointer("green")
-        self.angle1 = self.angle2 = self.angle3 = 0
 
         # draw texts at the bottom
         self.dial.create_rectangle( size/2-45, size-39, size/2+45, size-1,fill = "white" )
@@ -91,15 +100,12 @@ class dial(object):
         # label the dial
         self.dial.create_text( size/2, 20, text=name, fill = "Black", anchor="s")
 
-    def update_dial(self):
+    def update_dial(self, angle1, angle2, angle3):
         size = self.dail_size
         offs = self.offs
         length = (size-2*offs)/2
 
         # update the readings of the pointers
-        self.angle1 = (self.angle1 + (random.random()-0.3)*5)%360
-        self.angle2 = (self.angle2 + (random.random()-0.3)*5)%360
-        self.angle3 = (self.angle3 + (random.random()-0.3)*5)%360
 
         def update_pointer(angle, ptr, ptr_txt, legend):
             x = length* cos(radians(angle-90))
@@ -118,11 +124,9 @@ class dial(object):
             self.dial.itemconfig( legend, text = update_text + "%0.1f" %angle )
 
         # update the pointers
-        update_pointer(self.angle1,self.ptr1, self.ptr1_txt, self.text1)
-        update_pointer(self.angle2,self.ptr2, self.ptr2_txt, self.text2)
-        update_pointer(self.angle3,self.ptr3, self.ptr3_txt, self.text3)
-
-        self.master.after(100, self.update_dial)
+        update_pointer(angle1,self.ptr1, self.ptr1_txt, self.text1) # sensor
+        update_pointer(angle2,self.ptr2, self.ptr2_txt, self.text2) # dead
+        update_pointer(angle3,self.ptr3, self.ptr3_txt, self.text3) # Target
 
 class CTRLS(object):
     def __init__(self, ):
