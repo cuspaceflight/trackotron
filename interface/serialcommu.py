@@ -1,6 +1,7 @@
 # script to do serial communication using python
 from serial.tools import list_ports
 import threading
+import random
 import serial
 import time
 import math
@@ -154,6 +155,37 @@ class mega(object):
         x,y,z = int(line[1]),int(line[3]),int(line[5])
 
         return x,y,z # success
+
+class dummy_mega(object):
+    def __init__(self):
+        self.connect()
+        self.az = 0.0
+        self.el = 0.0
+        self.gps = [0.0, 0.0, 0.0]
+        self.magno = [0.0, 0.0, 0.0]
+        self.sensor_az = 0.0
+        self.sensor_el = 0.0
+        self.acc = [0.0, 0.0, 0.0]
+        self.online = 0
+        self.update()
+
+    def update(self):
+        self.online = 1
+        self.gps   = [(x+random.random())%255 for x in self.gps]
+        self.acc   = [(x+random.random())%255 for x in self.acc]
+        self.magno = [(x+random.random())%255 for x in self.magno]
+        self.az    = int(self.az+random.randint(1,360))%360
+        self.el    = int(self.el+random.randint(1,360))%360
+        self.sensor_az = math.degrees( math.atan2( self.magno[1], self.magno[0] ) )
+        self.sensor_el = math.degrees( math.atan2( self.acc[1],   self.acc[0]   ) )
+        return 0 # success
+
+    def connect(self, ):
+        pass
+
+    def stop(self, ):
+        pass
+
 
 
 if __name__ == '__main__':

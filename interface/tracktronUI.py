@@ -2,7 +2,6 @@ from math import cos, sin, radians
 from PIL import Image, ImageTk
 from Tkinter import *
 import serialcommu
-import random
 import time
 import sys
 
@@ -145,30 +144,24 @@ class STATUS(object):
         cavaswidth   = int(self.canv.config()['width'] [-1])
         self.canv.create_rectangle(2, 2, cavaswidth-2, canvasheight-2, fill="white")
 
-        stats_str = "ONLINE: {} \nAZ: {} EL: {} \nGPS: {} {} {}\nMAG: {} {} {}\nACC: {} {} {}\n"
-        x = [self.mega.online]+[self.mega.az]+[self.mega.el]+self.mega.gps+self.mega.magno+self.mega.acc
-        self.status_txt = self.canv.create_text( 4,4 , text=stats_str.format(*x), anchor="nw")
+        self.status_txt = self.canv.create_text( 4,4 , text='', anchor="nw")
 
     def update_stats(self):
-        stats_str = "ONLINE: {} \nAZ: {} EL: {} \nGPS: {} {} {}\nMAG: {} {} {}\nACC: {} {} {}\n"
-        x = [self.mega.online]+[self.mega.az]+[self.mega.el]+self.mega.gps+self.mega.magno+self.mega.acc
-
-        #print str(self.mega.online)
-        #print str(self.mega.az)
-        #print str(self.mega.el)
-        #print str(self.mega.gps)
-        #print str(self.mega.magno)
-        #print str(self.mega.acc)
-        #print x
-        #sys.stdout.flush()
-
+        stats_str = "ONLINE: {} \nAZ: {} \nEL: {} \nGPS: \
+{:.2f} {:.2f} {:.2f}\nMAG: {:.2f} {:.2f} {:.2f}\nACC: {:.2f} {:.2f} {:.2f}\n"
+        x = [self.mega.online]+[self.mega.az]+\
+        [self.mega.el]+self.mega.gps+self.mega.magno+self.mega.acc
         self.canv.itemconfig(self.status_txt, text=stats_str.format(*x) )
 
 
 if __name__ == '__main__':
-    mega1=serialcommu.mega()
+    try:
+        mega1=serialcommu.mega()
+    except Exception:
+        mega1=serialcommu.dummy_mega()
+
     root = Tk()
     app = App(root,mega1)
     root.mainloop()
-    try: mega1.stop()
-    except: pass
+
+    mega1.stop()
